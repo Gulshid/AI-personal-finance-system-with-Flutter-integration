@@ -1,5 +1,5 @@
-import 'package:app/flutter_integration/finance_ai_service.dart';
 import 'package:flutter/material.dart';
+// ignore: unused_import
 import 'services/finance_ai_service.dart';
 
 void main() {
