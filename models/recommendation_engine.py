@@ -11,7 +11,9 @@ your Flutter app needs deterministic, debuggable output anyway.
 import pandas as pd
 import joblib
 
-MODEL_DIR = "/home/claude/finance_ai/models"
+import os
+_HERE = os.path.dirname(os.path.abspath(__file__))
+MODEL_DIR = _HERE
 
 
 class RecommendationEngine:

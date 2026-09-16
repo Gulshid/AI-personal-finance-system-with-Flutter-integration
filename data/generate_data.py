@@ -8,6 +8,7 @@ has a learnable signal (merchant -> category), while amount distributions
 differ by category so anomaly detection has something real to catch.
 """
 
+import os
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -89,7 +90,7 @@ def generate_transactions(n_users=50, months=6, min_tx_per_day=0, max_tx_per_day
 
 if __name__ == "__main__":
     df = generate_transactions(n_users=50, months=6)
-    out_path = "/home/claude/finance_ai/data/transactions.csv"
+    out_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "transactions.csv")
     df.to_csv(out_path, index=False)
     print(f"Generated {len(df)} transactions for {df['user_id'].nunique()} users")
     print(f"Saved to {out_path}")

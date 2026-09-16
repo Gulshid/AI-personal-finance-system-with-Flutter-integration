@@ -1,0 +1,9 @@
+# Backend (ML + API) dependencies
+pandas
+numpy
+scikit-learn
+xgboost
+scipy
+joblib
+fastapi
+uvicorn[standard]

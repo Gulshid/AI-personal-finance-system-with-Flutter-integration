@@ -14,8 +14,11 @@ from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import LabelEncoder
 import joblib
 
-DATA_PATH = "/home/claude/finance_ai/data/transactions.csv"
-MODEL_DIR = "/home/claude/finance_ai/models"
+import os
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(_HERE)
+DATA_PATH = os.path.join(_ROOT, "data", "transactions.csv")
+MODEL_DIR = os.path.join(_ROOT, "models")
 
 
 def engineer_features(df):

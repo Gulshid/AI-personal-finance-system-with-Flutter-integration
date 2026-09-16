@@ -20,8 +20,11 @@ from sklearn.metrics import mean_absolute_error, r2_score
 from xgboost import XGBRegressor
 import joblib
 
-DATA_PATH = "/home/claude/finance_ai/data/transactions.csv"
-MODEL_DIR = "/home/claude/finance_ai/models"
+import os
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(_HERE)
+DATA_PATH = os.path.join(_ROOT, "data", "transactions.csv")
+MODEL_DIR = os.path.join(_ROOT, "models")
 
 
 def build_monthly_series(df):
