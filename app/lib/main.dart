@@ -1,81 +1,44 @@
 import 'package:flutter/material.dart';
-// ignore: unused_import
-import 'services/finance_ai_service.dart';
+import 'core/app_theme.dart';
+import 'screens/root_shell.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const FinanceAiApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class FinanceAiApp extends StatefulWidget {
+  const FinanceAiApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Finance AI',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const DashboardPage(),
-    );
-  }
+  State<FinanceAiApp> createState() => _FinanceAiAppState();
 }
 
-class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+class _FinanceAiAppState extends State<FinanceAiApp> {
+  // Simple ValueNotifier instead of a state-management package: the app
+  // has one global piece of UI state (theme mode), so a full provider/
+  // riverpod/bloc setup would be overkill.
+  final ValueNotifier<ThemeMode> _themeMode = ValueNotifier(ThemeMode.light);
 
   @override
-  State<DashboardPage> createState() => _DashboardPageState();
-}
-
-class _DashboardPageState extends State<DashboardPage> {
-  // TODO: replace with your Mac's LAN IP (from `ipconfig getifaddr en0`)
-  final financeApi = FinanceAiService(baseUrl: 'http://192.168.18.19:8000');
-
-  String _result = 'Tap the button to fetch recommendations for user 1';
-  bool _loading = false;
-
-  Future<void> _loadRecommendations() async {
-    setState(() {
-      _loading = true;
-      _result = 'Loading...';
-    });
-    try {
-      final recs = await financeApi.getUserRecommendations(1);
-      setState(() {
-        _result = recs.toString();
-      });
-    } catch (e) {
-      setState(() {
-        _result = 'Error: $e';
-      });
-    } finally {
-      setState(() {
-        _loading = false;
-      });
-    }
+  void dispose() {
+    _themeMode.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Finance AI Test')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ElevatedButton(
-              onPressed: _loading ? null : _loadRecommendations,
-              child: Text(_loading ? 'Loading...' : 'Get Recommendations (user 1)'),
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Text(_result, style: const TextStyle(fontSize: 14)),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: _themeMode,
+      builder: (context, mode, _) {
+        return MaterialApp(
+          title: 'AI Personal Finance',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: mode,
+          home: RootShell(themeMode: _themeMode),
+        );
+      },
     );
   }
 }

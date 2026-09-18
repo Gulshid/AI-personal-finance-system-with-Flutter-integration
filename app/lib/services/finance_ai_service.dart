@@ -1,109 +1,134 @@
-// lib/services/finance_ai_service.dart
-//
-// Dart service class for calling the AI Personal Finance API from Flutter.
-// Add to pubspec.yaml:  http: ^1.2.0
-//
-// IMPORTANT — base URL depends on where your API runs relative to the app:
-//   - Android emulator:  http://10.0.2.2:8000       (special alias to host machine)
-//   - iOS simulator:     http://localhost:8000       (works directly)
-//   - Physical device:   http://<your-computer-LAN-IP>:8000   (e.g. http://192.168.1.20:8000)
-//   - Deployed API:      https://your-deployed-domain.com
-//
-// Find your LAN IP with `ipconfig` (Windows) or `ifconfig`/`ip a` (Mac/Linux).
-// Physical device and computer must be on the same Wi-Fi network.
-
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
+import '../core/api_config.dart';
+import '../models/models.dart';
+import 'api_exception.dart';
+
+/// Talks to the FastAPI backend (see api/main.py). Every method returns a
+/// typed model and throws [ApiException] with a human-readable message on
+/// any failure, so screens never need to know about HTTP status codes or
+/// socket exceptions directly.
 class FinanceAiService {
   final String baseUrl;
+  final http.Client _client;
 
-  FinanceAiService({required this.baseUrl});
+  FinanceAiService({String? baseUrl, http.Client? client})
+      : baseUrl = baseUrl ?? ApiConfig.baseUrl,
+        _client = client ?? http.Client();
 
-  Future<Map<String, dynamic>> predictCategory({
+  Future<CategoryPrediction> predictCategory({
     required String merchant,
     required double amount,
     required String paymentMethod,
     String? date,
   }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/predict-category'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'merchant': merchant,
-        'amount': amount,
-        'payment_method': paymentMethod,
-        if (date != null) 'date': date,
-      }),
-    );
-    _checkResponse(response);
-    return jsonDecode(response.body);
+    final json = await _post('/predict-category', {
+      'merchant': merchant,
+      'amount': amount,
+      'payment_method': paymentMethod,
+      if (date != null) 'date': date,
+    });
+    return CategoryPrediction.fromJson(json);
   }
 
-  Future<Map<String, dynamic>> checkAnomaly({
+  Future<AnomalyResult> checkAnomaly({
     required int userId,
     required String category,
     required String merchant,
     required double amount,
     String? date,
   }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/check-anomaly'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'user_id': userId,
-        'category': category,
-        'merchant': merchant,
-        'amount': amount,
-        if (date != null) 'date': date,
-      }),
-    );
-    _checkResponse(response);
-    return jsonDecode(response.body);
+    final json = await _post('/check-anomaly', {
+      'user_id': userId,
+      'category': category,
+      'merchant': merchant,
+      'amount': amount,
+      if (date != null) 'date': date,
+    });
+    return AnomalyResult.fromJson(json);
   }
 
-  Future<Map<String, dynamic>> getUserCluster(int userId) async {
-    final response = await http.get(Uri.parse('$baseUrl/user/$userId/cluster'));
-    _checkResponse(response);
-    return jsonDecode(response.body);
+  Future<ClusterProfile> getUserCluster(int userId) async {
+    final json = await _get('/user/$userId/cluster');
+    return ClusterProfile.fromJson(json);
   }
 
-  Future<Map<String, dynamic>> getUserForecast(int userId) async {
-    final response = await http.get(Uri.parse('$baseUrl/user/$userId/forecast'));
-    _checkResponse(response);
-    return jsonDecode(response.body);
+  Future<ForecastResult> getUserForecast(int userId) async {
+    final json = await _get('/user/$userId/forecast');
+    return ForecastResult.fromJson(json);
   }
 
-  Future<Map<String, dynamic>> getUserRecommendations(int userId) async {
-    final response = await http.get(Uri.parse('$baseUrl/user/$userId/recommendations'));
-    _checkResponse(response);
-    return jsonDecode(response.body);
+  Future<List<RecommendationItem>> getUserRecommendations(int userId) async {
+    final json = await _get('/user/$userId/recommendations');
+    final list = (json['recommendations'] as List? ?? []);
+    return list
+        .map((e) => RecommendationItem.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
   }
 
-  void _checkResponse(http.Response response) {
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('API error ${response.statusCode}: ${response.body}');
+  // ---------- internal HTTP helpers ----------
+
+  Future<Map<String, dynamic>> _get(String path) async {
+    try {
+      final response = await _client
+          .get(Uri.parse('$baseUrl$path'))
+          .timeout(ApiConfig.requestTimeout);
+      return _decode(response);
+    } on SocketException {
+      throw const ApiException(
+          'Could not reach the server. Check that the backend is running '
+          'and your phone is on the same Wi-Fi network as your computer.');
+    } on http.ClientException {
+      throw const ApiException(
+          'Connection failed. Check the server address in ApiConfig and '
+          'that the backend is running.');
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Request timed out or failed: $e');
     }
   }
-}
 
-/* ---------------- Example usage in a widget ----------------
+  Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> body) async {
+    try {
+      final response = await _client
+          .post(
+            Uri.parse('$baseUrl$path'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          )
+          .timeout(ApiConfig.requestTimeout);
+      return _decode(response);
+    } on SocketException {
+      throw const ApiException(
+          'Could not reach the server. Check that the backend is running '
+          'and your phone is on the same Wi-Fi network as your computer.');
+    } on http.ClientException {
+      throw const ApiException(
+          'Connection failed. Check the server address in ApiConfig and '
+          'that the backend is running.');
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Request timed out or failed: $e');
+    }
+  }
 
-final financeApi = FinanceAiService(baseUrl: 'http://10.0.2.2:8000');
-
-Future<void> loadDashboard() async {
-  try {
-    final recs = await financeApi.getUserRecommendations(1);
-    final forecast = await financeApi.getUserForecast(1);
-    final cluster = await financeApi.getUserCluster(1);
-    setState(() {
-      recommendations = recs['recommendations'];
-      forecastData = forecast['forecast_next_month'];
-      userCluster = cluster['cluster'];
-    });
-  } catch (e) {
-    print('Failed to load dashboard: $e');
+  Map<String, dynamic> _decode(http.Response response) {
+    if (response.statusCode == 404) {
+      throw const ApiException('No data found for this user yet.');
+    }
+    if (response.statusCode == 422) {
+      throw const ApiException('The server rejected the request (invalid input).');
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      String detail = response.body;
+      try {
+        final parsed = jsonDecode(response.body);
+        detail = (parsed['detail'] ?? response.body).toString();
+      } catch (_) {}
+      throw ApiException('Server error (${response.statusCode}): $detail');
+    }
+    return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
   }
 }
-
-------------------------------------------------------------- */
