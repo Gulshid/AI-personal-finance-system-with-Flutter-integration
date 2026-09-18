@@ -1,7 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
-import '../models/models.dart';
 
 /// Donut chart breaking down a user's spend mix by category, with a
 /// scrollable legend. Sorted largest-first so the legend reads like a
@@ -50,8 +49,9 @@ class _SpendMixChartState extends State<SpendMixChart> {
                         centerSpaceRadius: 46,
                         pieTouchData: PieTouchData(
                           touchCallback: (event, response) {
+                            final index = response?.touchedSection?.touchedSectionIndex;
                             setState(() {
-                              _touchedIndex = response?.touchedSection?.touchedSectionIndex;
+                              _touchedIndex = (index == null || index < 0) ? null : index;
                             });
                           },
                         ),
@@ -79,7 +79,7 @@ class _SpendMixChartState extends State<SpendMixChart> {
                           ),
                         ],
                       )
-                    else if (_touchedIndex != null && _touchedIndex! < entries.length)
+                    else if (_touchedIndex != null && _touchedIndex! >= 0 && _touchedIndex! < entries.length)
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
