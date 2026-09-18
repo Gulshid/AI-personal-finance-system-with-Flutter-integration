@@ -67,7 +67,6 @@ def generate_transactions(n_users=50, months=6, min_tx_per_day=0, max_tx_per_day
                 merchant = random.choice(merchants)
                 amount = max(1, round(np.random.normal(mean_amt, std_amt), 2))
 
-                # Inject occasional anomalies (rare, large, off-pattern transactions)
                 is_anomaly = np.random.rand() < 0.01
                 if is_anomaly:
                     amount = round(amount * random.uniform(5, 12), 2)

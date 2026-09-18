@@ -14,9 +14,6 @@ class FinanceAiApp extends StatefulWidget {
 }
 
 class _FinanceAiAppState extends State<FinanceAiApp> {
-  // Simple ValueNotifier instead of a state-management package: the app
-  // has one global piece of UI state (theme mode), so a full provider/
-  // riverpod/bloc setup would be overkill.
   final ValueNotifier<ThemeMode> _themeMode = ValueNotifier(ThemeMode.light);
 
   @override

@@ -33,7 +33,6 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# ---------- Load all model artifacts once at startup ----------
 category_model = joblib.load(f"{MODEL_DIR}/category_model.joblib")
 merchant_vectorizer = joblib.load(f"{MODEL_DIR}/merchant_vectorizer.joblib")
 payment_encoder = joblib.load(f"{MODEL_DIR}/payment_encoder.joblib")
@@ -54,7 +53,7 @@ monthly_series = pd.read_csv(f"{MODEL_DIR}/monthly_spend_series.csv")
 recommendation_engine = RecommendationEngine()
 
 
-# ---------- Request/response schemas ----------
+
 class TransactionInput(BaseModel):
     merchant: str = Field(..., example="Starbucks")
     amount: float = Field(..., example=12.50)
@@ -82,7 +81,6 @@ class AnomalyCheckResponse(BaseModel):
     deviation_std: Optional[float]
 
 
-# ---------- Endpoints ----------
 
 @app.get("/")
 def root():
